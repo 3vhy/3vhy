@@ -1,75 +1,54 @@
 #!/usr/bin/env python3
 """
-Pixel-art asset generator for a GitHub profile README.
+Pixel-art images for the profile README.
 
-Edit CONFIG below, then run:
+Edit CONFIG, then run:
 
     python3 generate.py
 
-Every image is written to ./assets as a crisp SVG. Text is drawn pixel by pixel
-from the bitmap fonts in this file, so nothing depends on fonts or files that
-GitHub would block.
+Writes assets/banner.svg and assets/hotbar.svg. Text is drawn pixel by pixel
+from the bitmap fonts below, so nothing depends on fonts GitHub would block.
 """
-import math
 import os
 import random
 from collections import defaultdict
 
-# --------------------------------------------------------------------------- #
-#  CONFIG: change these, then re-run the script
-# --------------------------------------------------------------------------- #
 CONFIG = {
-    "greeting": "HI THERE, I'M",
-    "name": "3VHY",
-    "tagline": "> BUILDING THINGS ONE BLOCK AT A TIME",
-    "level": 12,      # number above the XP bar (age, years coding, anything)
-    "xp": 0.65,       # how full the XP bar is, 0.0 to 1.0
-    "hearts": 10,     # hearts on the left of the status bar
-    "gems": 10,       # gems on the right of the status bar
-    # Hotbar: (slot code of up to 3 characters, full name shown in the tooltip)
+    "name": "3vhy",
+    # Hotbar slots: (code of up to 3 characters, full name for the alt text)
     "skills": [
-        ("PY", "PYTHON"),
-        ("JV", "JAVA"),
-        ("JS", "JAVASCRIPT"),
-        ("TS", "TYPESCRIPT"),
-        ("CSS", "HTML & CSS"),
+        ("PY", "Python"),
+        ("JV", "Java"),
+        ("JS", "JavaScript"),
+        ("TS", "TypeScript"),
+        ("CSS", "HTML and CSS"),
         ("SQL", "SQL"),
-        ("GIT", "GIT"),
-        ("SH", "BASH"),
+        ("GIT", "Git"),
+        ("SH", "Bash"),
         ("C++", "C++"),
     ],
-    "headers": {      # file name -> (icon, text)
-        "about": ("book", "ABOUT ME"),
-        "inventory": ("chest", "INVENTORY"),
-        "quests": ("scroll", "QUEST LOG"),
-        "stats": ("star", "STATS"),
-        "contact": ("envelope", "SAY HI"),
-    },
-    "footer": "THANKS FOR STOPPING BY!",
-    "seed": 7,        # change for a different terrain / star layout
+    "seed": 7,  # change for a different star and terrain layout
 }
 
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
 PX = 4  # SVG units per art pixel
 
-# Palette: a ramp built around the two accents, #44506a (5) and #8290ad (7).
+# A neutral ramp tinted toward the two accents, #44506a (5) and #8290ad (7)
 PAL = {
     "0": "#0d1017",
     "1": "#151a25",
     "2": "#1c2231",
     "3": "#262d3f",
     "4": "#323b51",
-    "5": "#44506a",  # accent, dark
+    "5": "#44506a",
     "6": "#5f6c8a",
-    "7": "#8290ad",  # accent, light
+    "7": "#8290ad",
     "8": "#a9b3cb",
     "9": "#d3d9e6",
     "a": "#f2f4f9",
 }
 
-# --------------------------------------------------------------------------- #
-#  Bitmap fonts ('#' = lit). Glyphs can have any width.
-# --------------------------------------------------------------------------- #
+# Bitmap fonts ('#' = lit). Glyphs can have any width.
 _F57 = {
     "A": ".###. #...# #...# ##### #...# #...# #...#",
     "B": "####. #...# #...# ####. #...# #...# ####.",
@@ -177,208 +156,44 @@ _M35 = {
     "?": "##. ..# .#. ... .#.",
     "&": ".#. #.# .#. #.# .##",
 }
-F57 = {k: v.split() for k, v in _F57.items()}
-M35 = {k: v.split() for k, v in _M35.items()}
-
-# --------------------------------------------------------------------------- #
-#  Sprites: 16x16 icons ('.' = transparent, otherwise a palette key)
-# --------------------------------------------------------------------------- #
-ICONS = {
-    "pickaxe": [
-        "................",
-        "....00000.......",
-        "...0999870......",
-        "....0678870.....",
-        ".....0000870....",
-        "........06770...",
-        ".......0500760..",
-        "......060.0760..",
-        ".....050..0660..",
-        "....060....060..",
-        "...050......0...",
-        "..060...........",
-        ".050............",
-        "060.............",
-        ".0..............",
-        "................",
-    ],
-    "book": [
-        "................",
-        "..000000000000..",
-        "..045888888870..",
-        "..045777777760..",
-        "..045755555760..",
-        "..045759995760..",
-        "..045755555760..",
-        "..045777777760..",
-        "..045777777760..",
-        "..045777777760..",
-        "..045777777760..",
-        "..045666666660..",
-        "..040999999990..",
-        "..040888888880..",
-        "..000000000000..",
-        "................",
-    ],
-    "chest": [
-        "................",
-        "................",
-        ".00000000000000.",
-        ".08777777777780.",
-        ".07666666666650.",
-        ".07666666666650.",
-        ".000000aa000000.",
-        ".07666098066650.",
-        ".07666600666650.",
-        ".07666666666650.",
-        ".04444444444440.",
-        ".07666666666650.",
-        ".06555555555540.",
-        ".00000000000000.",
-        "................",
-        "................",
-    ],
-    "scroll": [
-        ".00000000000000.",
-        ".05888888888850.",
-        ".05777777777750.",
-        ".00999999999900.",
-        "..099999999990..",
-        "..096666666990..",
-        "..099999999990..",
-        "..096666699990..",
-        "..099999999990..",
-        "..096666666690..",
-        "..099999999990..",
-        "..099999999990..",
-        ".00000000000000.",
-        ".05888888888850.",
-        ".05777777777750.",
-        ".00000000000000.",
-    ],
-    "heart": [
-        "................",
-        "..0000....0000..",
-        ".099770..077770.",
-        "0997777007777760",
-        "0977777777777760",
-        "0777777777777660",
-        "0777777777776660",
-        ".07777777777660.",
-        "..077777777660..",
-        "...0777777660...",
-        "....07777660....",
-        ".....077660.....",
-        "......0760......",
-        ".......00.......",
-        "................",
-        "................",
-    ],
-    "envelope": [
-        "................",
-        "................",
-        ".00000000000000.",
-        ".06999999999960.",
-        ".09699999999690.",
-        ".09969999996990.",
-        ".09996999969990.",
-        ".09999699699990.",
-        ".09999966999990.",
-        ".08999999999980.",
-        ".08888888888880.",
-        ".07777777777770.",
-        ".00000000000000.",
-        "................",
-        "................",
-        "................",
-    ],
-    "bubble": [
-        "................",
-        "................",
-        "..000000000000..",
-        ".08999999999980.",
-        ".09999999999980.",
-        ".09999999999980.",
-        ".09955955955980.",
-        ".09955955955980.",
-        ".09999999999980.",
-        ".08888888888870.",
-        "..077000000000..",
-        "..0760..........",
-        "..00............",
-        "................",
-        "................",
-        "................",
-    ],
+_F57_LOWER = {  # 9 rows: x-height on rows 2-6, descenders on rows 7-8
+    "a": "..... ..... .###. ....# .#### #...# .#### ..... .....",
+    "b": "#.... #.... ####. #...# #...# #...# ####. ..... .....",
+    "c": "..... ..... .#### #.... #.... #.... .#### ..... .....",
+    "d": "....# ....# .#### #...# #...# #...# .#### ..... .....",
+    "e": "..... ..... .###. #...# ##### #.... .#### ..... .....",
+    "f": "..## .#.. #### .#.. .#.. .#.. .#.. .... ....",
+    "g": "..... ..... .#### #...# #...# #...# .#### ....# .###.",
+    "h": "#.... #.... ####. #...# #...# #...# #...# ..... .....",
+    "i": "# . # # # # # . .",
+    "j": "..# ... ..# ..# ..# ..# ..# #.# .#.",
+    "k": "#... #... #..# #.#. ##.. #.#. #..# .... ....",
+    "l": "#. #. #. #. #. #. .# .. ..",
+    "m": "..... ..... ####. #.#.# #.#.# #.#.# #.#.# ..... .....",
+    "n": "..... ..... ####. #...# #...# #...# #...# ..... .....",
+    "o": "..... ..... .###. #...# #...# #...# .###. ..... .....",
+    "p": "..... ..... ####. #...# #...# #...# ####. #.... #....",
+    "q": "..... ..... .#### #...# #...# #...# .#### ....# ....#",
+    "r": ".... .... #.## ##.. #... #... #... .... ....",
+    "s": "..... ..... .#### #.... .###. ....# ####. ..... .....",
+    "t": ".#.. .#.. #### .#.. .#.. .#.. ..## .... ....",
+    "u": "..... ..... #...# #...# #...# #...# .#### ..... .....",
+    "v": "..... ..... #...# #...# #...# .#.#. ..#.. ..... .....",
+    "w": "..... ..... #...# #.#.# #.#.# #.#.# .#.#. ..... .....",
+    "x": "..... ..... #...# .#.#. ..#.. .#.#. #...# ..... .....",
+    "y": "..... ..... #...# #...# #...# #...# .#### ....# .###.",
+    "z": "..... ..... ##### ...#. ..#.. .#... ##### ..... .....",
 }
-
-HEART9 = [
-    ".000.000.",
-    "0a9707770",
-    "097777770",
-    "077777750",
-    ".0777750.",
-    "..07750..",
-    "...050...",
-    "....0....",
-]
-GEM9 = [
-    "..00000..",
-    ".0a88760.",
-    "0a8877650",
-    "067765550",
-    ".0676550.",
-    "..06550..",
-    "...050...",
-    "....0....",
-]
-
-
-def _star_icon():
-    cx, cy, outer, inner = 7.5, 8.4, 7.9, 3.4
-    pts = []
-    for i in range(10):
-        a = -math.pi / 2 + i * math.pi / 5
-        r = outer if i % 2 == 0 else inner
-        pts.append((cx + r * math.cos(a), cy + r * math.sin(a)))
-
-    def inside(x, y):
-        hit = False
-        for i in range(len(pts)):
-            (x1, y1), (x2, y2) = pts[i], pts[i - 1]
-            if (y1 > y) != (y2 > y) and x < (x2 - x1) * (y - y1) / (y2 - y1) + x1:
-                hit = not hit
-        return hit
-
-    mask = {(x, y) for y in range(16) for x in range(16) if inside(x + 0.5, y + 0.5)}
-    edge = {p for p in mask if any((p[0] + dx, p[1] + dy) not in mask
-                                   for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)))}
-    rows = []
-    for y in range(16):
-        row = ""
-        for x in range(16):
-            if (x, y) not in mask:
-                row += "."
-            elif (x, y) in edge:
-                row += "0"
-            elif (x - 1, y) in edge or (x, y - 1) in edge:
-                row += "9" if x < 8 else "8"
-            elif (x + 1, y) in edge or (x, y + 1) in edge:
-                row += "6"
-            else:
-                row += "7"
-        rows.append(row)
-    return rows
-
-
-ICONS["star"] = _star_icon()
-
-for _name, _rows in ICONS.items():
-    assert len(_rows) == 16 and all(len(r) == 16 for r in _rows), _name
+F57 = {k: v.split() for k, v in {**_F57, **_F57_LOWER}.items()}
+for _g in F57.values():  # pad capitals to the 9-row grid
+    _g.extend(["." * len(_g[0])] * (9 - len(_g)))
+M35 = {k: v.split() for k, v in _M35.items()}
+for _k, _g in F57.items():
+    assert len(_g) == 9 and len({len(r) for r in _g}) == 1, _k
 
 
 # --------------------------------------------------------------------------- #
-#  Tiny pixel canvas that writes merged-rectangle SVG paths
+#  Pixel canvas that writes merged-rectangle SVG paths
 # --------------------------------------------------------------------------- #
 class Layer:
     def __init__(self, attrs=""):
@@ -486,7 +301,7 @@ def _rects(points):
 class Svg:
     def __init__(self, w, h, title):
         self.w, self.h, self.title = w, h, title
-        self.layers, self.css = [], ""
+        self.layers = []
 
     def layer(self, attrs=""):
         layer = Layer(attrs)
@@ -500,10 +315,6 @@ class Svg:
             f'viewBox="0 0 {W} {H}" shape-rendering="crispEdges" role="img">',
             f"<title>{esc(self.title)}</title>",
         ]
-        if self.css:
-            out.append("<style>" + self.css +
-                       "@media (prefers-reduced-motion: reduce){*{animation:none!important}}"
-                       "</style>")
         out.append(f'<g transform="scale({PX})">')
         for layer in self.layers:
             by_color = defaultdict(list)
@@ -540,7 +351,7 @@ def dither(x, y, frac):
 
 
 # --------------------------------------------------------------------------- #
-#  Shared scenery pieces
+#  Scenery
 # --------------------------------------------------------------------------- #
 def block(layer, bx, by, kind, rng, ore_chance=0.3):
     """Draw one 16x16 block texture."""
@@ -615,42 +426,17 @@ def tree(layer, cx, base, rng):
                 layer.set(x, y, "5" if rng.random() < 0.7 else "4")
 
 
-def starfield(svg, rng, w, ymax, count, avoid=None, twinkle=8):
-    stars = svg.layer()
-    for _ in range(count):
-        x, y = rng.randrange(1, w - 1), rng.randrange(1, ymax)
-        if avoid and avoid(x, y):
-            continue
-        stars.set(x, y, rng.choice("6678"))
-    n = 0
-    while n < twinkle:
-        x, y = rng.randrange(4, w - 4), rng.randrange(3, ymax - 2)
-        if avoid and avoid(x, y):
-            continue
-        delay = round(rng.uniform(0, 4), 2)
-        dur = round(rng.uniform(2.5, 4.5), 2)
-        s = svg.layer(f'class="tw" style="animation-duration:{dur}s;animation-delay:{delay}s"')
-        s.set(x, y, "a")
-        for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
-            s.set(x + dx, y + dy, "7")
-        n += 1
-
-
-TWINKLE_CSS = (".tw{animation:tw 3s step-end infinite}"
-               "@keyframes tw{0%{opacity:1}45%{opacity:.25}60%{opacity:1}75%{opacity:.6}}")
-
-
 # --------------------------------------------------------------------------- #
-#  Banner
+#  Banner: the name on calm sky, a hillside rising on the right
 # --------------------------------------------------------------------------- #
 def make_banner(cfg):
     W, H = 320, 120
     rng = random.Random(cfg["seed"])
-    svg = Svg(W, H, f"{cfg['greeting']} {cfg['name']}. {cfg['tagline'].lstrip('> ')}")
+    name = cfg["name"]
+    svg = Svg(W, H, f"{name}, written in pixels over a blocky hillside at night")
 
-    # sky: dithered bands
     sky = svg.layer()
-    bands = [(0, "1"), (36, "2"), (64, "3"), (90, "4"), (H, "4")]
+    bands = [(0, "1"), (84, "2"), (100, "3"), (H, "3")]
     for y in range(H):
         k = max(i for i, (b, _) in enumerate(bands[:-1]) if b <= y)
         nxt_b, nxt_c = bands[k + 1]
@@ -661,42 +447,42 @@ def make_banner(cfg):
                 c = nxt_c
             sky.set(x, y, c)
 
-    # moon
-    mx, my = 268, 12
+    scale = max(1, min(5, 150 // max(1, text_width(name))))
+    nx, ny = 24, 30
+    nw = text_width(name, scale=scale)
+    mx, my = 214, 14
+
+    def clear(x, y):
+        in_name = nx - 8 <= x <= nx + nw + 8 and ny - 8 <= y <= ny + 9 * scale + 4
+        in_moon = mx - 4 <= x <= mx + 16 and my - 4 <= y <= my + 16
+        return not (in_name or in_moon)
+
+    stars = svg.layer()
+    placed = 0
+    while placed < 60:
+        x, y = rng.randrange(2, W - 2), rng.randrange(2, 74)
+        if clear(x, y):
+            stars.set(x, y, rng.choice("5667"))
+            placed += 1
+    placed = 0
+    while placed < 4:
+        x, y = rng.randrange(6, W - 6), rng.randrange(4, 60)
+        if clear(x - 2, y - 2) and clear(x + 2, y + 2):
+            stars.set(x, y, "9")
+            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                stars.set(x + dx, y + dy, "6")
+            placed += 1
+
     moon = svg.layer()
-    for i, (pad, frac) in enumerate(((5, 0.5), (3, 1.0))):
-        for y in range(my - pad, my + 14 + pad):
-            for x in range(mx - pad, mx + 14 + pad):
-                if frac == 1.0 or dither(x, y, frac):
-                    moon.set(x, y, "2" if i == 0 else "3")
-    moon.rect(mx, my, 14, 14, "9")
-    moon.rect(mx + 12, my, 2, 14, "8")
-    moon.rect(mx, my + 12, 14, 2, "8")
-    moon.rect(mx, my, 12, 1, "a")
-    moon.rect(mx, my, 1, 12, "a")
-    for (cx, cy, cw, ch) in ((3, 3, 3, 2), (8, 6, 2, 2), (4, 8, 2, 3), (9, 2, 1, 1)):
+    moon.rect(mx, my, 12, 12, "9")
+    moon.rect(mx + 10, my, 2, 12, "8")
+    moon.rect(mx, my + 10, 12, 2, "8")
+    moon.rect(mx, my, 10, 1, "a")
+    moon.rect(mx, my, 1, 10, "a")
+    for cx, cy, cw, ch in ((3, 3, 2, 2), (7, 5, 2, 2), (3, 7, 2, 1)):
         moon.rect(mx + cx, my + cy, cw, ch, "8")
 
-    starfield(svg, rng, W, 70, 90,
-              avoid=lambda x, y: mx - 6 <= x <= mx + 20 and my - 6 <= y <= my + 20)
-
-    # clouds drift left forever (layer is duplicated one screen to the right)
-    clouds = svg.layer('class="drift" opacity="0.9"')
-    shapes = [
-        (18, 30, [(4, 0, 12, 2), (0, 2, 26, 3), (16, 1, 6, 1)]),
-        (120, 18, [(6, 0, 8, 2), (2, 2, 22, 2), (0, 4, 30, 2)]),
-        (196, 40, [(3, 0, 10, 2), (0, 2, 18, 3)]),
-        (238, 28, [(8, 0, 10, 2), (0, 2, 28, 3), (20, 1, 4, 1)]),
-    ]
-    for ox, oy, rects in shapes:
-        mask = {(ox + x + i, oy + y + j) for x, y, w, h in rects for i in range(w) for j in range(h)}
-        for (x, y) in mask:
-            c = "4" if (x, y - 1) not in mask else ("2" if (x, y + 1) not in mask else "3")
-            clouds.set(x, y, c)
-            clouds.set(x + W, y, c)  # copy for seamless wrap
-
-    # terrain
-    heights = [4, 4, 3, 2, 2, 2, 1, 1, 2, 2, 2, 2, 1, 1, 2, 2, 2, 3, 4, 4]
+    heights = [1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 4, 5, 5, 5, 5]
     ground = svg.layer()
     for col, h in enumerate(heights):
         bx = col * 16
@@ -705,243 +491,47 @@ def make_banner(cfg):
             kind = "grass" if level == h - 1 else ("dirt" if level >= h - 3 else "stone")
             block(ground, bx, by, kind, rng)
         tufts(ground, bx, H - 16 * h, rng)
-    tree(ground, 40, H - 16 * heights[2], rng)
-    tree(ground, 280, H - 16 * heights[17], rng)
+    tree(ground, 12 * 16 + 8, H - 16 * heights[12], rng)
+    tree(ground, 17 * 16 + 8, H - 16 * heights[17], rng)
 
-    # fireflies
-    for i in range(7):
-        x = rng.randrange(60, 260)
-        y = rng.randrange(80, 100)
-        f = svg.layer(f'class="ff" style="animation-delay:{round(i * 0.9, 1)}s"')
-        f.set(x, y, "a")
-
-    # text
-    text = svg.layer()
-    gw = text_width(cfg["greeting"], scale=2)
-    draw_text(text, cfg["greeting"], (W - gw) // 2, 12, "7", scale=2, shadow="0", shadow_off=1)
-
-    name_scale = max(1, min(5, 260 // max(1, text_width(cfg["name"]))))
-    nw = text_width(cfg["name"], scale=name_scale)
-    draw_text(text, cfg["name"], (W - nw) // 2, 32, "a", scale=name_scale,
-              outline="0", extrude=name_scale, extrude_color="5", shade="9", shade_from=4)
-
-    tw = text_width(cfg["tagline"], scale=1)
-    tx = (W - tw - 6) // 2
-    draw_text(text, cfg["tagline"], tx, 78, "9", shadow="0", shadow_off=1)
-    cursor = svg.layer('class="blink"')
-    cursor.rect(tx + tw + 2, 78, 4, 7, "7")
-
-    svg.css = (
-        TWINKLE_CSS +
-        f".drift{{animation:drift 120s steps({W}) infinite}}"
-        f"@keyframes drift{{from{{transform:translateX(0)}}to{{transform:translateX(-{W}px)}}}}"
-        ".blink{animation:blink 1.1s step-end infinite}"
-        "@keyframes blink{50%{opacity:0}}"
-        ".ff{opacity:0;animation:ff 6.3s steps(9) infinite}"
-        "@keyframes ff{0%{opacity:0;transform:translate(0,0)}15%{opacity:1}"
-        "50%{transform:translate(3px,-5px)}85%{opacity:1}100%{opacity:0;transform:translate(0,-10px)}}"
-    )
+    draw_text(svg.layer(), name, nx, ny, "9", scale=scale)
     svg.save("banner.svg")
 
 
 # --------------------------------------------------------------------------- #
-#  Status bar (hearts, XP, coffee)
-# --------------------------------------------------------------------------- #
-def panel(layer, x, y, w, h, fill="1"):
-    layer.rect(x, y, w, h, fill)
-    layer.frame(x, y, w, h, "0")
-    layer.rect(x + 1, y + 1, w - 2, 1, "3")
-    layer.rect(x + 1, y + 1, 1, h - 2, "3")
-
-
-def make_status(cfg):
-    W, H = 320, 30
-    svg = Svg(W, H, f"Status bar: {cfg['hearts']} hearts, level {cfg['level']}, "
-                    f"{round(cfg['xp'] * 100)}% XP, {cfg['gems']} gems")
-    base = svg.layer()
-    panel(base, 0, 0, W, H)
-
-    for i in range(cfg["hearts"]):
-        base.sprite(HEART9, 6 + i * 10, 5)
-    for i in range(cfg["gems"]):
-        base.sprite(GEM9, W - 6 - 9 - i * 10, 5)
-
-    label = f"LEVEL {cfg['level']}"
-    lw = text_width(label)
-    draw_text(base, label, (W - lw) // 2, 5, "8", outline="0")
-
-    x0, x1, y0 = 6, W - 6, 18
-    inner = x1 - x0 - 2
-    base.rect(x0, y0, x1 - x0, 7, "0")
-    base.rect(x0 + 1, y0 + 1, inner, 5, "2")
-    for x in range(x0 + 1 + 19, x1 - 1, 19):
-        base.rect(x, y0 + 1, 1, 5, "3")
-
-    fill_w = round(inner * max(0.0, min(1.0, cfg["xp"])))
-    xp = svg.layer('class="xp"')
-    xp.rect(x0 + 1, y0 + 1, fill_w, 5, "7")
-    xp.rect(x0 + 1, y0 + 1, fill_w, 1, "8")
-    xp.rect(x0 + 1, y0 + 5, fill_w, 1, "6")
-    for x in range(x0 + 1 + 19, x0 + 1 + fill_w, 19):
-        xp.rect(x, y0 + 1, 1, 5, "6")
-
-    svg.css = (
-        ".xp{transform-box:fill-box;transform-origin:0 50%;"
-        "animation:grow 1.6s steps(16) both .3s}"
-        "@keyframes grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}"
-    )
-    svg.save("status.svg")
-
-
-# --------------------------------------------------------------------------- #
-#  Section headers
-# --------------------------------------------------------------------------- #
-def make_header(key, icon, label, rng):
-    W, H = 320, 22
-    svg = Svg(W, H, label.title())
-    g = svg.layer()
-    g.rect(0, 0, W, H, "3")
-    for y in range(2, H - 2):
-        for x in range(2, W - 2):
-            r = rng.random()
-            if r < 0.07:
-                g.set(x, y, "4")
-            elif r < 0.12:
-                g.set(x, y, "2")
-    g.frame(0, 0, W, H, "0")
-    g.rect(1, 1, W - 2, 1, "5")
-    g.rect(1, 1, 1, H - 2, "5")
-    g.rect(1, H - 2, W - 2, 1, "1")
-    g.rect(W - 2, 1, 1, H - 2, "1")
-
-    # inset icon tile
-    g.rect(3, 3, 16, 16, "1")
-    g.rect(3, 3, 16, 1, "0")
-    g.rect(3, 3, 1, 16, "0")
-    g.rect(3, 18, 16, 1, "5")
-    g.rect(18, 3, 1, 16, "5")
-    g.sprite(ICONS[icon], 3, 3)
-
-    draw_text(g, label, 25, 4, "a", scale=2, shadow="1", shadow_off=2)
-
-    for i, c in enumerate("567"):
-        g.rect(W - 26 + i * 7, 9, 4, 4, c)
-        g.rect(W - 26 + i * 7, 12, 4, 1, "1")
-    svg.save(f"header-{key}.svg")
-
-
-# --------------------------------------------------------------------------- #
-#  Hotbar with an animated selection + tooltip
+#  Hotbar: one still row of inventory slots
 # --------------------------------------------------------------------------- #
 def make_hotbar(cfg):
     skills = cfg["skills"]
     n = len(skills)
-    W = 320
-    gap = 2
-    slot = min(32, (W - 8 - gap * (n - 1)) // n)
+    slot, gap = 30, 2
     total = n * slot + (n - 1) * gap
-    px0 = (W - total - 6) // 2
-    sx0, sy = px0 + 3, 27
-    H = sy + slot + 5
-    names = ", ".join(full for _, full in skills)
-    svg = Svg(W, H, f"Skill hotbar: {names}")
+    W, H = total + 6, slot + 6
+    svg = Svg(W, H, "Skills: " + ", ".join(full for _, full in skills))
 
     bar = svg.layer()
-    bar.rect(px0, 24, total + 6, slot + 6, "3")
-    bar.frame(px0, 24, total + 6, slot + 6, "0")
-    bar.rect(px0 + 1, 25, total + 4, 1, "5")
-    bar.rect(px0 + 1, 24 + slot + 4, total + 4, 1, "1")
+    bar.rect(0, 0, W, H, "2")
+    bar.frame(0, 0, W, H, "0")
+    bar.rect(1, 1, W - 2, 1, "4")
 
     inner = slot - 4
     scale = 2 if all(text_width(c, M35, 2) <= inner for c, _ in skills) else 1
     for i, (code, _) in enumerate(skills):
-        x = sx0 + i * (slot + gap)
-        bar.rect(x, sy, slot, slot, "2")
-        bar.rect(x, sy, slot, 1, "1")
-        bar.rect(x, sy, 1, slot, "1")
-        bar.rect(x, sy + slot - 1, slot, 1, "4")
-        bar.rect(x + slot - 1, sy, 1, slot, "4")
+        x, y = 3 + i * (slot + gap), 3
+        bar.rect(x, y, slot, slot, "1")
+        bar.rect(x, y, slot, 1, "0")
+        bar.rect(x, y, 1, slot, "0")
+        bar.rect(x, y + slot - 1, slot, 1, "3")
+        bar.rect(x + slot - 1, y, 1, slot, "3")
         tw = text_width(code, M35, scale)
-        th = 5 * scale
-        draw_text(bar, code, x + (slot - tw) // 2, sy + (slot - th) // 2, "9",
+        draw_text(bar, code, x + (slot - tw) // 2, y + (slot - 5 * scale) // 2, "9",
                   font=M35, scale=scale, shadow="0", shadow_off=1)
-
-    step = 2.2
-    dur = round(step * n, 2)
-    sel = svg.layer('class="sel"')
-    sel.frame(sx0 - 2, sy - 2, slot + 4, slot + 4, "a", 2)
-    sel.frame(sx0 - 1, sy - 1, slot + 2, slot + 2, "8")
-
-    for i, (_, full) in enumerate(skills):
-        style = f'style="animation-delay:{round(i * step, 2)}s"'
-        tip = svg.layer(f'class="tip{" first" if i == 0 else ""}" {style}')
-        tw = text_width(full, scale=2)
-        bw = tw + 10
-        bx = (W - bw) // 2
-        tip.rect(bx, 1, bw, 20, "1")
-        tip.frame(bx, 1, bw, 20, "0")
-        tip.frame(bx + 1, 2, bw - 2, 18, "7")
-        draw_text(tip, full, bx + 5, 4, "a", scale=2, shadow="0", shadow_off=1)
-
-    pitch = slot + gap
-    frames = "".join(f"{round(100 * i / n, 3)}%{{transform:translateX({i * pitch}px)}}"
-                     for i in range(n))
-    vis = round(100 / n, 3)
-    svg.css = (
-        f".sel{{animation:sel {dur}s step-end infinite}}"
-        f"@keyframes sel{{{frames}100%{{transform:translateX(0)}}}}"
-        f".tip{{opacity:0;animation:tip {dur}s step-end infinite}}.tip.first{{opacity:1}}"
-        f"@keyframes tip{{0%{{opacity:1}}{vis}%{{opacity:0}}100%{{opacity:0}}}}"
-    )
     svg.save("hotbar.svg")
 
 
-# --------------------------------------------------------------------------- #
-#  Footer strip
-# --------------------------------------------------------------------------- #
-def make_footer(cfg):
-    W, H = 320, 56
-    rng = random.Random(cfg["seed"] + 1)
-    svg = Svg(W, H, cfg["footer"].title())
-    sky = svg.layer()
-    for y in range(24):
-        for x in range(W):
-            sky.set(x, y, "2" if (y >= 20 and dither(x, y, (y - 19) / 4)) else "1")
-    starfield(svg, rng, W, 20, 40, twinkle=4,
-              avoid=lambda x, y: 60 <= x <= 260 and 5 <= y <= 17)
-    ground = svg.layer()
-    for col in range(W // 16):
-        block(ground, col * 16, 24, "grass", rng)
-        block(ground, col * 16, 40, "stone", rng, ore_chance=0.35)
-        tufts(ground, col * 16, 24, rng)
-    text = svg.layer()
-    tw = text_width(cfg["footer"])
-    draw_text(text, cfg["footer"], (W - tw) // 2, 8, "8", shadow="0", shadow_off=1)
-    svg.css = TWINKLE_CSS
-    svg.save("footer.svg")
-
-
-# --------------------------------------------------------------------------- #
-#  Inline icons
-# --------------------------------------------------------------------------- #
-def make_icons():
-    for name, rows in ICONS.items():
-        svg = Svg(16, 16, name.title())
-        svg.layer().sprite(rows, 0, 0)
-        svg.save(f"icons/{name}.svg")
-
-
 def main():
-    print("Generating pixel art...")
     make_banner(CONFIG)
-    make_status(CONFIG)
-    rng = random.Random(CONFIG["seed"] + 2)
-    for key, (icon, label) in CONFIG["headers"].items():
-        make_header(key, icon, label, rng)
     make_hotbar(CONFIG)
-    make_footer(CONFIG)
-    make_icons()
-    print("Done.")
 
 
 if __name__ == "__main__":
