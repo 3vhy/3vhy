@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" shape-rendering="crispEdges" role="img">
+<title>Star</title>
+<g transform="scale(4)">
+<g>
+<path fill="#0d1017" d="M7 1h1v2h-1zM6 3h1v3h-1zM8 3h1v3h-1zM1 6h5v1h-5zM9 6h5v1h-5zM2 7h1v1h-1zM12 7h1v1h-1zM3 8h1v1h-1zM11 8h1v1h-1zM4 9h1v3h-1zM6 11h3v1h-3zM10 9h1v3h-1zM3 12h1v1h-1zM5 12h1v1h-1zM9 12h1v1h-1zM11 12h1v1h-1zM3 13h2v1h-2zM10 13h2v1h-2z"/>
+<path fill="#5f6c8a" d="M10 8h1v1h-1zM9 9h1v1h-1zM6 10h4v1h-4z"/>
+<path fill="#8290ad" d="M7 6h1v1h-1zM6 7h3v1h-3zM5 8h5v1h-5zM6 9h3v1h-3z"/>
+<path fill="#a9b3cb" d="M8 6h1v1h-1zM9 7h3v1h-3zM9 11h1v1h-1zM10 12h1v1h-1z"/>
+<path fill="#d3d9e6" d="M7 3h1v3h-1zM6 6h1v1h-1zM3 7h3v1h-3zM4 8h1v1h-1zM5 9h1v3h-1zM4 12h1v1h-1z"/>
+</g>
+</g></svg>
